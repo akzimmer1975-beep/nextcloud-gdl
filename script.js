@@ -1,5 +1,5 @@
 // script.js (with Render placeholder)
-const apiBase = "https://RENDER_BACKEND_URL/api/upload";
+const apiBase = "https://nextcloud-backend1.onrender.com/api/upload";
 
 function $(id){ return document.getElementById(id); }
 
