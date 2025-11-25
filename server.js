@@ -1,36 +1,65 @@
-const express=require('express');
-const fileUpload=require('express-fileupload');
-const {createClient}=require('webdav');
+const express = require('express');
+const fileUpload = require('express-fileupload');
+const { createClient } = require('webdav');
+const path = require('path');
 
-const app=express();
-app.use(fileUpload());
+const app = express();
+app.use(fileUpload({ createParentPath: true }));
+app.use(express.json());
 
-const client=createClient(
-    "https://DEIN_NEXTCLOUD_SERVER/remote.php/dav/files/USERNAME/",
-    {username:"USERNAME",password:"PASSWORD"}
-);
+// Read Nextcloud credentials from environment variables
+const NEXTCLOUD_URL = process.env.NEXTCLOUD_URL || "https://portal.gdl-jugend.de/remote.php/webdav/Documents/BR%20Wahl%202026/";
+const NEXTCLOUD_USER = process.env.NEXTCLOUD_USER || 'USERNAME';
+const NEXTCLOUD_PASS = process.env.NEXTCLOUD_PASS || 'PASSWORD';
 
-app.post('/upload',async(req,res)=>{
-    try{
-        const {bezirk,bkz,code}=req.body;
-        const useCode=true; // Zahlencode aktivieren/deaktivieren
-        if(useCode && code!=="12345"){ return res.send("Falscher Zahlencode"); }
+// Toggle code checking
+const USE_CODE = true;
+const EXPECTED_CODE = process.env.EXPECTED_CODE || '12345';
 
-        const folderPath=`/${bezirk}/${bkz}`;
-        try{ await client.createDirectory(folderPath); }catch(e){}
-
-        for(const key in req.files){
-            let file=req.files[key];
-            let filePath=`${folderPath}/${file.name}`;
-            if(await client.exists(filePath)){
-                const ts=new Date().toISOString().replace(/[:.-]/g,'');
-                const parts=file.name.split('.');
-                filePath=`${folderPath}/${parts[0]}_${ts}.${parts[1]}`;
-            }
-            await client.putFileContents(filePath,file.data);
-        }
-        res.send("Upload abgeschlossen");
-    }catch(err){ res.send("Fehler: "+err);}
+const client = createClient(NEXTCLOUD_URL, {
+  username: NEXTCLOUD_USER,
+  password: NEXTCLOUD_PASS
 });
 
-app.listen(3000,()=>console.log("Server läuft auf Port 3000"));
+app.post('/upload', async (req, res) => {
+  try {
+    const { bezirk, bkz, code, dokument } = req.body;
+    if (!bezirk || !bkz || !dokument) return res.status(400).json({ ok: false, error: 'bezirk, bkz und dokument erforderlich' });
+
+    if (USE_CODE && EXPECTED_CODE && code !== EXPECTED_CODE) {
+      return res.status(401).json({ ok: false, error: 'Falscher Zahlencode' });
+    }
+
+    const folderPath = `/${bezirk}/${bkz}`;
+    try { await client.createDirectory(folderPath); } catch(e) { /* ignore if exists */ }
+
+    const uploaded = [];
+    const existsInfo = [];
+
+    // req.files may have a single file field "datei"
+    for (const fieldName in req.files) {
+      const file = req.files[fieldName];
+      const filename = file.name;
+      let targetPath = `${folderPath}/${filename}`;
+      const exists = await client.exists(targetPath);
+      if (exists) {
+        const ts = new Date().toISOString().replace(/[:.\-]/g, '');
+        const dot = filename.lastIndexOf('.');
+        const namePart = dot > 0 ? filename.substring(0, dot) : filename;
+        const ext = dot > 0 ? filename.substring(dot) : '';
+        targetPath = `${folderPath}/${namePart}_${ts}${ext}`;
+        existsInfo.push({ original: filename, savedAs: targetPath });
+      }
+      await client.putFileContents(targetPath, file.data, { overwrite: true });
+      uploaded.push(targetPath);
+    }
+
+    res.json({ ok: true, existsAlready: existsInfo.length > 0, saved: uploaded, info: existsInfo });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server läuft auf Port ${PORT}`));
