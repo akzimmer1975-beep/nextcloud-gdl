@@ -1,5 +1,4 @@
-const cors= require("cors");
-app.use(cors());
+
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const { createClient } = require('webdav');
@@ -65,4 +64,5 @@ app.post('/upload', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server läuft auf Port ${PORT}`));
+
 
