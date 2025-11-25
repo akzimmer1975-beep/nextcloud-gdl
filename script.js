@@ -52,6 +52,8 @@ async function uploadAll(){
 
   try{
     const resp = await fetch(apiBase, { method: "POST", body: form });
+    const text = await resp.text();  // statt json direkt
+  console.log("Antwort-Text:", text);
     const json = await resp.json();
     if(resp.ok){
       alert("Upload erfolgreich.");
@@ -60,6 +62,7 @@ async function uploadAll(){
       alert("Fehler: " + json.message);
     }
   } catch(e){
+     console.error("Netzwerk- oder Fetch-Fehler:", e, e.stack);
     alert("Netzwerkfehler: " + e.message);
   }
 }
