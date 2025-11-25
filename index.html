@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Passwortgeschütztes Upload-Portal</title>
+<link rel="stylesheet" href="style.css">
+
+<style>
+  #login-box {
+    margin: 120px auto;
+    width: 300px;
+    padding: 20px;
+    border: 1px solid #aaa;
+    background: #f8f8f8;
+    text-align: center;
+    border-radius: 8px;
+  }
+  #main-content { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Login Bereich -->
+<div id="login-box">
+  <h2>Bitte PIN eingeben</h2>
+  <input type="password" id="login-pass" placeholder="PIN" maxlength="4" />
+  <br><br>
+  <button onclick="checkPass()">Login</button>
+  <div id="login-error" style="color:red;margin-top:10px;"></div>
+</div>
+
+<!-- Eigentliche Upload-Seite (wird nach Login angezeigt) -->
+<div id="main-content">
+
+<div id="logo">
+  <img src="logo.png" alt="Logo" style="max-width:200px;">
+</div>
+
+<h2>Dateien hochladen (alle mit einem Klick)</h2>
+
+<form id="upload-form" onsubmit="return false;">
+  <label>Bezirk:
+    <select id="bezirk" required>
+      <option value="">-- Bitte auswählen --</option>
+      <option value="Mitte">Mitte</option>
+      <option value="Nord">Nord</option>
+      <option value="Süd">Süd</option>
+      <option value="Ost">Ost</option>
+      <option value="West">West</option>
+    </select>
+  </label><br>
+
+  <label>BKZ: <input type="text" id="bkz" required></label><br>
+  <label>Zahlencode (optional): <input type="password" id="code"></label><br>
+</form>
+
+<div class="upload-container" id="drop-wahlausschreiben" data-filetype="wahlausschreiben">
+  Wahlausschreiben hierher ziehen
+  <div id="status-wahlausschreiben" class="status"></div>
+</div>
+
+<div class="upload-container" id="drop-niederschrift" data-filetype="niederschrift">
+  Niederschrift hierher ziehen
+  <div id="status-niederschrift" class="status"></div>
+</div>
+
+<div class="upload-container" id="drop-wahlvorschlag" data-filetype="wahlvorschlag">
+  Wahlvorschlag hierher ziehen
+  <div id="status-wahlvorschlag" class="status"></div>
+</div>
+
+<button id="upload-btn">Alle Dateien hochladen</button>
+
+<h3>Debug</h3>
+<pre id="debug" style="background:#eef;padding:10px;border:1px solid #aaa;height:120px;overflow:auto;"></pre>
+
+<script src="script.js"></script>
+</div>
+
+<script>
+// PIN für Login
+const PIN = "1867";
+
+function checkPass() {
+  const input = document.getElementById("login-pass").value;
+  if (input === PIN) {
+    document.getElementById("login-box").style.display = "none";
+    document.getElementById("main-content").style.display = "block";
+  } else {
+    document.getElementById("login-error").textContent = "Falsche PIN!";
+  }
+}
+</script>
+
+</body>
+</html>
