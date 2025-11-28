@@ -11,11 +11,9 @@ const containers = [
   { dropId: "drop-wahlvorschlag", filetype: "wahlvorschlag", prog: "prog-wahlvorschlag", status: "status-wahlvorschlag", list: "list-wahlvorschlag" }
 ];
 
-
 // ----------------------------
 // DROPPING
 // ----------------------------
-
 function setupDrops() {
 
   // Globale Browser-Blockade verhindern
@@ -70,11 +68,9 @@ function setupDrops() {
   });
 }
 
-
 // ----------------------------
 // Upload-Button Aktivierung
 // ----------------------------
-
 function updateUploadButton() {
   const btn = $("upload-btn");
 
@@ -86,11 +82,9 @@ function updateUploadButton() {
   btn.disabled = !hasFiles;
 }
 
-
 // ----------------------------
 // EINZELDATEI-UPLOAD mit Progress
 // ----------------------------
-
 function uploadSingleFile(file, filetype, container) {
   return new Promise((resolve, reject) => {
     const form = new FormData();
@@ -135,11 +129,9 @@ function uploadSingleFile(file, filetype, container) {
   });
 }
 
-
 // ----------------------------
 // ALLE UPLOADS
 // ----------------------------
-
 async function uploadAll() {
   const bezirk = $("bezirk").value;
   const bkz    = $("bkz").value;
@@ -170,11 +162,9 @@ async function uploadAll() {
   $("upload-btn").disabled = false;
 }
 
-
 // ----------------------------
 // INIT
 // ----------------------------
-
 document.addEventListener("DOMContentLoaded", () => {
   setupDrops();
   $("upload-btn").addEventListener("click", uploadAll);
