@@ -1,12 +1,14 @@
 body {
-  background-color: #28a745; /* Grün */
+  background-color: #28a745;
   font-family: Arial, sans-serif;
   color: #fff;
   padding: 20px;
   text-align: center;
 }
+
 h2 { margin-bottom: 20px; }
 #logo { margin-bottom: 20px; }
+
 .upload-container {
   border: 2px dashed #fff;
   padding: 20px;
@@ -16,9 +18,95 @@ h2 { margin-bottom: 20px; }
   text-align: center;
   border-radius: 8px;
   background: rgba(255,255,255,0.03);
+  position: relative;
+  z-index: 1;
 }
-.upload-container.hover { border-color: #000; background: rgba(0,0,0,0.05); }
-button { margin-top: 15px; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius:6px; border:none; }
-input[type="text"], input[type="password"], select { padding: 5px; margin: 5px 0; width: 200px; border-radius: 4px; border: none; }
-.status { margin-top:8px; font-size:14px; color:#fff; }
-#debug { color: #000; background: #fff; color:#000; }
+
+.upload-container.hover {
+  border-color: #000;
+  background: rgba(0,0,0,0.05);
+}
+
+.upload-container progress {
+  width: 100%;
+  display: none;
+  margin-top: 8px;
+  pointer-events: none !important;   /* WICHTIG */
+}
+
+button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  border: none;
+}
+
+input[type="text"],
+input[type="password"],
+select {
+  padding: 5px;
+  margin: 5px 0;
+  width: 200px;
+  border-radius: 4px;
+  border: none;
+}
+
+.status {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #fff;
+}
+
+#debug {
+  color: #000;
+  background: #fff;
+}
+✅ FINALER Drop-Zonen-Fix für script.js
+Bitte ersetze deine komplette setupDrops() durch diese geprüfte Version:
+
+javascript
+Code kopieren
+function setupDrops() {
+
+  // Dokument verhindert Browser-Blockade
+  document.addEventListener("dragover", e => e.preventDefault());
+  document.addEventListener("drop", e => e.preventDefault());
+
+  containers.forEach(c => {
+    const el = $(c.dropId);
+    const status = $(c.status);
+    const prog = $(c.prog);
+
+    el.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.add("hover");
+    });
+
+    el.addEventListener("dragleave", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.remove("hover");
+    });
+
+    el.addEventListener("drop", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.remove("hover");
+
+      const files = e.dataTransfer.files;
+
+      // speichern
+      el._files = files;
+
+      // Status anzeigen
+      status.textContent = files.length + " Datei(en) bereit";
+
+      // Fortschrittsbalken resetten
+      prog.style.display = "none";
+      prog.value = 0;
+    });
+  });
+}
