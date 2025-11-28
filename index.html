@@ -3,24 +3,89 @@
 <head>
 <meta charset="UTF-8">
 <title>Passwortgeschütztes Upload-Portal</title>
-<link rel="stylesheet" href="style.css">
-
 <style>
-  #login-box {
-    margin: 120px auto;
-    width: 300px;
-    padding: 20px;
-    border: 1px solid #aaa;
-    background: #f8f8f8;
-    text-align: center;
-    border-radius: 8px;
-  }
-  #main-content { display: none; }
+body {
+  background-color: #28a745;
+  font-family: Arial, sans-serif;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+h2, h3 { margin-bottom: 20px; }
+#logo { margin-bottom: 20px; }
+
+.upload-container {
+  border: 2px dashed #fff;
+  padding: 20px;
+  margin: 10px auto;
+  width: 320px;
+  cursor: pointer;
+  text-align: center;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  position: relative;
+  z-index: 1;
+}
+.upload-container.hover {
+  border-color: #fff;
+  background: rgba(255,255,255,0.15);
+}
+button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  border: none;
+}
+input[type="text"],
+input[type="password"],
+select {
+  padding: 5px;
+  margin: 5px 0;
+  width: 200px;
+  border-radius: 4px;
+  border: none;
+}
+.status {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #fff;
+}
+.file-list {
+  margin-top: 10px;
+  font-size: 13px;
+  text-align: left;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+#debug {
+  color: #000;
+  background: #fff;
+  padding: 10px;
+  margin-top: 20px;
+  max-height: 200px;
+  overflow:auto;
+}
+#login-box {
+  margin: 120px auto;
+  width: 300px;
+  padding: 20px;
+  border: 1px solid #aaa;
+  background: #f8f8f8;
+  text-align: center;
+  border-radius: 8px;
+}
+#main-content { display: none; }
+table { border-collapse: collapse; margin: 10px auto; color: #000; background: #fff;}
+table th, table td { padding: 5px 10px; border: 1px solid #aaa; }
+progress { width: 100%; margin-top: 5px; display: block; }
 </style>
 </head>
 <body>
 
-<!-- Login Bereich -->
+<!-- Login -->
 <div id="login-box">
   <h2>Bitte PIN eingeben</h2>
   <input type="password" id="login-pass" placeholder="PIN" maxlength="4" />
@@ -29,14 +94,14 @@
   <div id="login-error" style="color:red;margin-top:10px;"></div>
 </div>
 
-<!-- Eigentliche Upload-Seite (wird nach Login angezeigt) -->
+<!-- Hauptbereich -->
 <div id="main-content">
 
 <div id="logo">
   <img src="logo.png" alt="Logo" style="max-width:200px;">
 </div>
 
-<h2>Dateien hochladen (alle mit einem Klick)</h2>
+<h2>Dateien hochladen (Drag & Drop)</h2>
 
 <form id="upload-form" onsubmit="return false;">
   <label>Bezirk:
@@ -49,52 +114,250 @@
       <option value="West">West</option>
     </select>
   </label><br>
-
   <label>BKZ: <input type="text" id="bkz" required></label><br>
   <label>Zahlencode (optional): <input type="password" id="code"></label><br>
 </form>
 
+<!-- Drop-Zonen -->
 <div class="upload-container" id="drop-wahlausschreiben" data-filetype="wahlausschreiben">
   Wahlausschreiben hierher ziehen
   <div id="status-wahlausschreiben" class="status"></div>
-  <progress id="prog-wahlausschreiben" value="0" max="100" style="width:100%;display:none;"></progress>
 </div>
 <div id="list-wahlausschreiben" class="file-list"></div>
 
 <div class="upload-container" id="drop-niederschrift" data-filetype="niederschrift">
   Niederschrift hierher ziehen
   <div id="status-niederschrift" class="status"></div>
-  <progress id="prog-wahlausschreiben" value="0" max="100" style="width:100%;display:none;"></progress>
 </div>
 <div id="list-niederschrift" class="file-list"></div>
-  
+
 <div class="upload-container" id="drop-wahlvorschlag" data-filetype="wahlvorschlag">
   Wahlvorschlag hierher ziehen
   <div id="status-wahlvorschlag" class="status"></div>
-  <progress id="prog-wahlausschreiben" value="0" max="100" style="width:100%;display:none;"></progress>
 </div>
- <div id="list-wahlvorschlag" class="file-list"></div> 
+<div id="list-wahlvorschlag" class="file-list"></div>
 
-<button id="upload-btn">Alle Dateien hochladen</button>
+<button id="upload-btn" onclick="uploadAll()">Alle Dateien hochladen</button>
+<button onclick="exportCSV()">Upload-Log als CSV speichern</button>
 
-<h3>Debug</h3>
-<pre id="debug" style="background:#eef;padding:10px;border:1px solid #aaa;height:120px;overflow:auto;"></pre>
+<h3>Abgelegte Dateien auf dem Backend</h3>
+<label>Bezirk:
+  <select id="filter-bezirk">
+    <option value="">Alle</option>
+    <option value="Mitte">Mitte</option>
+    <option value="Nord">Nord</option>
+    <option value="Süd">Süd</option>
+    <option value="Ost">Ost</option>
+    <option value="West">West</option>
+  </select>
+</label>
+<label>BKZ:
+  <input type="text" id="filter-bkz" placeholder="BKZ">
+</label>
+<button onclick="updateBackendTable()">Anzeigen</button>
 
-<script src="script.js"></script>
+<div id="backend-table"></div>
+
+<pre id="debug"></pre>
+
 </div>
 
 <script>
-// PIN für Login
+/* -------------------- LOGIN -------------------- */
 const PIN = "1867";
-
 function checkPass() {
   const input = document.getElementById("login-pass").value;
-  if (input === PIN) {
-    document.getElementById("login-box").style.display = "none";
-    document.getElementById("main-content").style.display = "block";
+  if(input===PIN){
+    document.getElementById("login-box").style.display="none";
+    document.getElementById("main-content").style.display="block";
+    init(); // initialisiere Drops & Backend Übersicht
   } else {
-    document.getElementById("login-error").textContent = "Falsche PIN!";
+    document.getElementById("login-error").textContent="Falsche PIN!";
   }
+}
+
+/* -------------------- GLOBAL -------------------- */
+const apiBase = "https://nextcloud-backend1.onrender.com/api/upload";
+let uploadLog = [];
+let serverFiles = [];
+
+function $(id){ return document.getElementById(id); }
+
+const containers = [
+  { dropId:"drop-wahlausschreiben", filetype:"wahlausschreiben", status:"status-wahlausschreiben", list:"list-wahlausschreiben" },
+  { dropId:"drop-niederschrift", filetype:"niederschrift", status:"status-niederschrift", list:"list-niederschrift" },
+  { dropId:"drop-wahlvorschlag", filetype:"wahlvorschlag", status:"status-wahlvorschlag", list:"list-wahlvorschlag" }
+];
+
+/* -------------------- SETUP DROP -------------------- */
+function setupDrops(){
+  document.addEventListener("dragover", e=>e.preventDefault());
+  document.addEventListener("drop", e=>e.preventDefault());
+
+  containers.forEach(c=>{
+    const el=$(c.dropId), status=$(c.status), list=$(c.list);
+
+    el.addEventListener("dragover", e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.add("hover");
+    });
+    el.addEventListener("dragleave", e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.remove("hover");
+    });
+    el.addEventListener("drop", e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.remove("hover");
+
+      const files=e.dataTransfer.files;
+      el._files=files;
+
+      list.innerHTML="";
+      for(let i=0;i<files.length;i++){
+        const li=document.createElement("div");
+        li.textContent="📄 "+files[i].name+" ("+Math.round(files[i].size/1024)+" KB)";
+        list.appendChild(li);
+      }
+
+      status.textContent=files.length+" Datei(en) bereit";
+
+      logFiles(c, files);
+    });
+  });
+}
+
+/* -------------------- LOG & CSV -------------------- */
+function logFiles(container, files){
+  const bezirk=$("bezirk").value;
+  const bkz=$("bkz").value;
+  const code=$("code").value;
+
+  for(let file of files){
+    uploadLog.push({
+      datetime:new Date().toISOString(),
+      filename:file.name,
+      sizeKB:Math.round(file.size/1024),
+      type:container.filetype,
+      bezirk:bezirk,
+      bkz:bkz,
+      code:code
+    });
+  }
+}
+
+function exportCSV(){
+  if(!uploadLog.length){ alert("Keine Daten zum Exportieren!"); return; }
+  let csv="Datum/Uhrzeit,Datei-Name,Größe (KB),Typ,Bezirk,BKZ,Zahlencode\n";
+  uploadLog.forEach(r=>{
+    csv+=`"${r.datetime}","${r.filename}",${r.sizeKB},"${r.type}","${r.bezirk}","${r.bkz}","${r.code}"\n`;
+  });
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="upload_log.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* -------------------- BACKEND ÜBERSICHT -------------------- */
+async function loadBackendFiles(){
+  try{
+    const resp=await fetch("https://nextcloud-backend1.onrender.com/api/files");
+    if(!resp.ok) throw new Error("Fehler beim Laden der Backend-Dateien");
+    serverFiles=await resp.json();
+    updateBackendTable();
+  } catch(e){
+    console.error(e);
+    $("backend-table").textContent="Fehler beim Laden der Dateien.";
+  }
+}
+
+function updateBackendTable(){
+  const bezirkFilter=$("filter-bezirk").value;
+  const bkzFilter=$("filter-bkz").value;
+  const filtered=serverFiles.filter(r=> (bezirkFilter===""||r.bezirk===bezirkFilter) && (bkzFilter===""||r.bkz===bkzFilter) );
+
+  let html=`<table>
+    <tr><th>Datum/Uhrzeit</th><th>Datei-Name</th><th>Größe (KB)</th><th>Typ</th><th>Bezirk</th><th>BKZ</th></tr>`;
+  filtered.forEach(r=>{
+    html+=`<tr>
+      <td>${r.datetime}</td>
+      <td>${r.filename}</td>
+      <td>${Math.round(r.size/1024)}</td>
+      <td>${r.type}</td>
+      <td>${r.bezirk}</td>
+      <td>${r.bkz}</td>
+    </tr>`;
+  });
+  html+="</table>";
+  $("backend-table").innerHTML=html;
+}
+
+/* -------------------- UPLOAD MIT FORTSCHRITT PRO DATEI -------------------- */
+async function uploadAll(){
+  for(let c of containers){
+    if(c._files && c._files.length>0) await uploadFiles(c);
+  }
+}
+
+async function uploadFiles(container){
+  const files=container._files;
+  if(!files || files.length===0) return;
+
+  const listEl=$(container.list);
+  listEl.innerHTML=""; // alte Liste löschen
+
+  for(let file of files){
+    // Datei-Eintrag
+    const fileDiv=document.createElement("div");
+    fileDiv.textContent=`📄 ${file.name} (${Math.round(file.size/1024)} KB)`;
+
+    // Fortschrittsbalken pro Datei
+    const prog=document.createElement("progress");
+    prog.max=100;
+    prog.value=0;
+    fileDiv.appendChild(prog);
+    listEl.appendChild(fileDiv);
+
+    // FormData
+    const formData=new FormData();
+    formData.append("files", file);
+    formData.append("bezirk",$("bezirk").value);
+    formData.append("bkz",$("bkz").value);
+    formData.append("code",$("code").value);
+    formData.append("type",container.filetype);
+
+    // Upload via XMLHttpRequest für Fortschritt
+    await new Promise((resolve,reject)=>{
+      const xhr=new XMLHttpRequest();
+      xhr.open("POST", apiBase, true);
+      xhr.upload.onprogress=function(e){
+        if(e.lengthComputable) prog.value=Math.round((e.loaded/e.total)*100);
+      };
+      xhr.onload=function(){
+        if(xhr.status>=200 && xhr.status<300){ prog.value=100; resolve(); }
+        else{ alert("Fehler beim Hochladen von "+file.name); reject(); }
+      };
+      xhr.onerror=function(){ alert("Fehler beim Hochladen von "+file.name); reject(); }
+      xhr.send(formData);
+    });
+  }
+
+  container._files=null;
+  $(container.status).textContent="";
+  loadBackendFiles();
+}
+
+/* -------------------- INIT -------------------- */
+function init(){
+  setupDrops();
+  loadBackendFiles();
+  $("filter-bezirk").addEventListener("change", updateBackendTable);
+  $("filter-bkz").addEventListener("input", updateBackendTable);
 }
 </script>
 
