@@ -1,22 +1,77 @@
 // ----------------------------
 // CONFIG
 // ----------------------------
-const apiBase = "https://nextcloud-backend1.onrender.com/api/upload";
+const apiUpload = "https://nextcloud-backend1.onrender.com/api/upload";
+const apiFiles  = "https://nextcloud-backend1.onrender.com/api/files";
 
 function $(id) { return document.getElementById(id); }
 
 const containers = [
   { dropId: "drop-wahlausschreiben", filetype: "wahlausschreiben", prog: "prog-wahlausschreiben", status: "status-wahlausschreiben", list: "list-wahlausschreiben" },
-  { dropId: "drop-niederschrift", filetype: "niederschrift", prog: "prog-niederschrift", status: "status-niederschrift", list: "list-niederschrift" },
-  { dropId: "drop-wahlvorschlag", filetype: "wahlvorschlag", prog: "prog-wahlvorschlag", status: "status-wahlvorschlag", list: "list-wahlvorschlag" }
+  { dropId: "drop-niederschrift",   filetype: "niederschrift",   prog: "prog-niederschrift",   status: "status-niederschrift",   list: "list-niederschrift" },
+  { dropId: "drop-wahlvorschlag",   filetype: "wahlvorschlag",   prog: "prog-wahlvorschlag",   status: "status-wahlvorschlag",   list: "list-wahlvorschlag" }
 ];
 
 // ----------------------------
-// DROPPING
+// AUTO-REFRESH DATEILISTE
+// ----------------------------
+let refreshTimer = null;
+
+function refreshFileListDebounced() {
+  if (refreshTimer) clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(loadExistingFiles, 300);
+}
+
+async function loadExistingFiles() {
+  const bezirk = $("bezirk").value;
+  const bkz    = $("bkz").value.trim();
+
+  if (!bezirk || !bkz) {
+    const target = $("existing-files");
+    if (target) target.textContent = "Bitte Bezirk und BKZ auswählen";
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `${apiFiles}?bezirk=${encodeURIComponent(bezirk)}&bkz=${encodeURIComponent(bkz)}`
+    );
+
+    const files = await res.json();
+    const target = $("existing-files");
+    if (!target) return;
+
+    if (!files.length) {
+      target.textContent = "Keine Dateien vorhanden";
+      return;
+    }
+
+    // Neueste zuerst
+    files.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+
+    target.innerHTML = `
+      <ul>
+        ${files.map(f => `
+          <li>
+            ${f.name}<br>
+            <small>
+              hochgeladen am:
+              ${new Date(f.lastModified).toLocaleString("de-DE")}
+            </small>
+          </li>
+        `).join("")}
+      </ul>
+    `;
+  } catch (err) {
+    console.error("Fehler beim Laden der Dateien", err);
+  }
+}
+
+// ----------------------------
+// DRAG & DROP SETUP
 // ----------------------------
 function setupDrops() {
 
-  // Globale Browser-Blockade verhindern
   document.addEventListener("dragover", e => e.preventDefault());
   document.addEventListener("drop", e => e.preventDefault());
 
@@ -26,40 +81,30 @@ function setupDrops() {
     const prog   = $(c.prog);
     const list   = $(c.list);
 
-    el.addEventListener("dragover", function (e) {
+    el.addEventListener("dragover", e => {
       e.preventDefault();
-      e.stopPropagation();
       el.classList.add("hover");
     });
 
-    el.addEventListener("dragleave", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
+    el.addEventListener("dragleave", () => {
       el.classList.remove("hover");
     });
 
-    el.addEventListener("drop", function (e) {
+    el.addEventListener("drop", e => {
       e.preventDefault();
-      e.stopPropagation();
       el.classList.remove("hover");
 
       const files = e.dataTransfer.files;
-
-      // Dateien speichern
       el._files = files;
 
-      // Dateiliste anzeigen
       list.innerHTML = "";
       for (let i = 0; i < files.length; i++) {
-        const li = document.createElement("div");
-        li.textContent = "📄 " + files[i].name + " (" + Math.round(files[i].size/1024) + " KB)";
-        list.appendChild(li);
+        const div = document.createElement("div");
+        div.textContent = "📄 " + files[i].name + " (" + Math.round(files[i].size / 1024) + " KB)";
+        list.appendChild(div);
       }
 
-      // Status
       status.textContent = files.length + " Datei(en) bereit";
-
-      // Fortschritt zurücksetzen
       prog.style.display = "none";
       prog.value = 0;
 
@@ -69,12 +114,12 @@ function setupDrops() {
 }
 
 // ----------------------------
-// Upload-Button Aktivierung
+// UPLOAD-BUTTON AKTIVIERUNG
 // ----------------------------
 function updateUploadButton() {
   const btn = $("upload-btn");
 
-  let hasFiles = containers.some(c => {
+  const hasFiles = containers.some(c => {
     const el = $(c.dropId);
     return el._files && el._files.length > 0;
   });
@@ -83,7 +128,7 @@ function updateUploadButton() {
 }
 
 // ----------------------------
-// EINZELDATEI-UPLOAD mit Progress
+// EINZELDATEI-UPLOAD
 // ----------------------------
 function uploadSingleFile(file, filetype, container) {
   return new Promise((resolve, reject) => {
@@ -95,12 +140,11 @@ function uploadSingleFile(file, filetype, container) {
     form.append("files", file, file.name);
 
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", apiBase);
+    xhr.open("POST", apiUpload);
 
     const progEl   = $(container.prog);
     const statusEl = $(container.status);
 
-    // Progress
     xhr.upload.addEventListener("progress", e => {
       if (e.lengthComputable) {
         const p = Math.round((e.loaded / e.total) * 100);
@@ -113,6 +157,10 @@ function uploadSingleFile(file, filetype, container) {
     xhr.onload = () => {
       if (xhr.status === 200) {
         statusEl.textContent = "✓ Erfolgreich hochgeladen";
+
+        // 🔁 AUTO-REFRESH NACH UPLOAD
+        refreshFileListDebounced();
+
         resolve(true);
       } else {
         statusEl.textContent = "❌ Fehler: " + xhr.status;
@@ -168,5 +216,7 @@ async function uploadAll() {
 document.addEventListener("DOMContentLoaded", () => {
   setupDrops();
   $("upload-btn").addEventListener("click", uploadAll);
+  $("bezirk").addEventListener("change", refreshFileListDebounced);
+  $("bkz").addEventListener("input", refreshFileListDebounced);
   updateUploadButton();
 });
