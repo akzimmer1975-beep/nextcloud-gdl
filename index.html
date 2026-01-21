@@ -3,109 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Upload BR-Wahl 2026</title>
-
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #fafafa;
-    margin: 0;
-    padding: 0;
-  }
-
-  /* LOGIN */
-  #login-box {
-    margin: 120px auto;
-    width: 300px;
-    padding: 20px;
-    border: 1px solid #aaa;
-    background: #f8f8f8;
-    text-align: center;
-    border-radius: 8px;
-  }
-
-  #main-content {
-    display: none;
-    padding: 20px 40px;
-  }
-
-  /* LOGO */
-  #logo {
-    margin-bottom: 20px;
-  }
-
-  .logo-img {
-    max-width: 220px;
-  }
-
-  /* FORM */
-  form label {
-    display: block;
-    margin-bottom: 10px;
-  }
-
-  /* LAYOUT */
-  .layout {
-    display: flex;
-    gap: 30px;
-    align-items: flex-start;
-    margin-top: 20px;
-  }
-
-  .dropzones {
-    flex: 2;
-  }
-
-  .existing {
-    flex: 1;
-    border: 1px solid #aaa;
-    padding: 12px;
-    background: #f8f8f8;
-    border-radius: 8px;
-  }
-
-  /* DROPZONES */
-  .upload-container {
-    border: 2px dashed #999;
-    padding: 15px;
-    margin-bottom: 15px;
-    background: #fff;
-    border-radius: 8px;
-  }
-
-  .upload-container:hover {
-    background: #f0f6ff;
-  }
-
-  progress {
-    width: 100%;
-    margin-top: 5px;
-  }
-
-  .file-list {
-    margin-top: 10px;
-    font-size: 14px;
-  }
-
-  #existing-files {
-    min-height: 250px;
-    max-height: 500px;
-    overflow-y: auto;
-  }
-
-  button {
-    padding: 10px 16px;
-    font-size: 15px;
-    cursor: pointer;
-    margin-top: 10px;
-  }
-
-  /* RESPONSIVE */
-  @media (max-width: 900px) {
-    .layout {
-      flex-direction: column;
-    }
-  }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -113,14 +11,14 @@
 <!-- LOGIN -->
 <div id="login-box">
   <h2>Bitte PIN eingeben</h2>
-  <input type="password" id="login-pass" placeholder="PIN" maxlength="4" />
+  <input type="password" id="login-pass" placeholder="PIN" maxlength="4">
   <br><br>
   <button onclick="checkPass()">Login</button>
   <div id="login-error" style="color:red;margin-top:10px;"></div>
 </div>
 
 <!-- HAUPTINHALT -->
-<div id="main-content">
+<div id="main-content" style="display:none;">
 
   <div id="logo">
     <img src="logo.png" alt="Logo" class="logo-img">
@@ -152,31 +50,32 @@
   <!-- LAYOUT -->
   <div class="layout">
 
-    <!-- LINKS: DROPZONEN -->
     <div class="dropzones">
 
       <div class="upload-container" id="drop-wahlausschreiben">
         Wahlausschreiben hierher ziehen
-        <progress max="100" value="0"></progress>
-        <div class="file-list"></div>
+        <div class="status" id="status-wahlausschreiben"></div>
+        <progress id="prog-wahlausschreiben" max="100" value="0"></progress>
+        <div class="file-list" id="list-wahlausschreiben"></div>
       </div>
 
       <div class="upload-container" id="drop-niederschrift">
         Niederschrift hierher ziehen
-        <progress max="100" value="0"></progress>
-        <div class="file-list"></div>
+        <div class="status" id="status-niederschrift"></div>
+        <progress id="prog-niederschrift" max="100" value="0"></progress>
+        <div class="file-list" id="list-niederschrift"></div>
       </div>
 
       <div class="upload-container" id="drop-wahlvorschlag">
         Wahlvorschlag hierher ziehen
-        <progress max="100" value="0"></progress>
-        <div class="file-list"></div>
+        <div class="status" id="status-wahlvorschlag"></div>
+        <progress id="prog-wahlvorschlag" max="100" value="0"></progress>
+        <div class="file-list" id="list-wahlvorschlag"></div>
       </div>
 
       <button id="upload-btn" disabled>Alle Dateien hochladen</button>
     </div>
 
-    <!-- RECHTS: BEREITS HOCHGELADEN -->
     <div class="existing">
       <h3>Bereits hochgeladene Dateien</h3>
       <div id="existing-files" class="file-list">
@@ -187,23 +86,24 @@
   </div>
 
   <h3>Debug</h3>
-  <pre id="debug" style="background:#eef;padding:10px;border:1px solid #aaa;height:120px;overflow:auto;"></pre>
+  <pre id="debug"></pre>
 
 </div>
 
 <script>
-  const PIN = "1867";
+const PIN = "1867";
 
-  function checkPass() {
-    const input = document.getElementById("login-pass").value;
-    if (input === PIN) {
-      document.getElementById("login-box").style.display = "none";
-      document.getElementById("main-content").style.display = "block";
-    } else {
-      document.getElementById("login-error").textContent = "Falsche PIN!";
-    }
+function checkPass() {
+  const input = document.getElementById("login-pass").value;
+  if (input === PIN) {
+    document.getElementById("login-box").style.display = "none";
+    document.getElementById("main-content").style.display = "block";
+  } else {
+    document.getElementById("login-error").textContent = "Falsche PIN!";
   }
+}
 </script>
 
+<script src="script.js"></script>
 </body>
 </html>
