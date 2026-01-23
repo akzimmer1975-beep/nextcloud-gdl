@@ -15,7 +15,7 @@ const containers = [
 ];
 
 // ----------------------------
-// AUTO-REFRESH DATEILISTE
+// DATEILISTE (RECHTS)
 // ----------------------------
 let refreshTimer = null;
 
@@ -27,8 +27,8 @@ function refreshFileListDebounced() {
 async function loadExistingFiles() {
   const bezirk = $("bezirk")?.value;
   const bkz    = $("bkz")?.value.trim();
-
   const target = $("existing-files");
+
   if (!bezirk || !bkz || !target) {
     if (target) target.textContent = "Bitte Bezirk und BKZ auswählen";
     return;
@@ -104,8 +104,8 @@ function setupDrops() {
 
       if (status) status.textContent = `${files.length} Datei(en) bereit`;
       if (prog) {
-        prog.style.display = "none";
         prog.value = 0;
+        prog.style.display = "none";
       }
 
       updateUploadButton();
@@ -184,12 +184,47 @@ function uploadSingleFile(file, filetype, container) {
 }
 
 // ----------------------------
+// RESET (NUR BEI 100 % ERFOLG)
+// ----------------------------
+function resetUploadUI() {
+  containers.forEach(c => {
+    const el     = $(c.dropId);
+    const list   = $(c.list);
+    const status = $(c.status);
+    const prog   = $(c.prog);
+
+    if (el) el._files = null;
+    if (list) list.innerHTML = "";
+    if (status) status.textContent = "";
+    if (prog) {
+      prog.value = 0;
+      prog.style.display = "none";
+    }
+  });
+
+  updateUploadButton();
+}
+
+// ----------------------------
 // ALLE UPLOADS
 // ----------------------------
 async function uploadAll() {
 
   const btn = $("upload-btn");
   btn.disabled = true;
+
+  let totalCount = 0;
+  let successCount = 0;
+
+  containers.forEach(c => {
+    const el = $(c.dropId);
+    if (el && el._files) totalCount += el._files.length;
+  });
+
+  if (totalCount === 0) {
+    btn.disabled = false;
+    return;
+  }
 
   for (let c of containers) {
     const el = $(c.dropId);
@@ -198,14 +233,24 @@ async function uploadAll() {
     for (let file of el._files) {
       try {
         await uploadSingleFile(file, c.filetype, c);
+        successCount++;
       } catch (err) {
         console.error("Fehler bei Datei:", file.name, err);
       }
     }
   }
 
-  alert("Alle Uploads abgeschlossen");
-  btn.disabled = false;
+  if (successCount === totalCount) {
+    resetUploadUI();
+    alert("Alle Dateien wurden erfolgreich hochgeladen.");
+    btn.disabled = true;
+  } else {
+    alert(
+      `Upload abgeschlossen mit Fehlern.\n` +
+      `${successCount} von ${totalCount} Dateien erfolgreich.`
+    );
+    btn.disabled = false;
+  }
 }
 
 // ----------------------------
