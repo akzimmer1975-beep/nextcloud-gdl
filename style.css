@@ -1,3 +1,6 @@
+/* =====================
+   GRUNDLAYOUT
+===================== */
 body {
   background-color: #28a745;
   font-family: Arial, sans-serif;
@@ -9,46 +12,15 @@ body {
 h2 { margin-bottom: 20px; }
 #logo { margin-bottom: 20px; }
 
-.upload-container {
-  border: 2px dashed #fff;
-  padding: 20px;
-  margin: 10px auto;
-  width: 320px;
-  cursor: pointer;
-  text-align: center;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.03);
-  position: relative;
-  z-index: 1;
+.logo-img {
+  max-width: 600px;
+  width: 100%;
+  height: auto;
 }
 
-.logo-img{
-max-width: 600px;
-width: 100%;
-height: auto;
-}
-.layout {
-  display: flex;
-  gap: 30px;
-  align-items: flex-start;
-  margin-top: 20px;
-}
-
-.dropzones {
-  flex: 2;
-}
-
-.existing {
-  flex: 1;
-  border: 1px solid #aaa;body {
-  background-color: #28a745;
-  font-family: Arial, sans-serif;
-  color: #fff;
-  padding: 20px;
-  text-align: center;
-}
-
-/* LOGIN */
+/* =====================
+   LOGIN
+===================== */
 #login-box {
   background: #fff;
   color: #000;
@@ -58,12 +30,15 @@ height: auto;
   margin: 120px auto;
 }
 
-/* LAYOUT */
+/* =====================
+   LAYOUT
+===================== */
 .layout {
   display: flex;
   gap: 30px;
   justify-content: center;
   align-items: flex-start;
+  margin-top: 20px;
 }
 
 .dropzones {
@@ -72,73 +47,18 @@ height: auto;
   align-items: center;
 }
 
-/* DROPZONES */
+/* =====================
+   DROPZONEN
+===================== */
 .upload-container {
   border: 2px dashed #fff;
   padding: 20px;
   margin: 10px 0;
   width: 320px;
+  cursor: pointer;
+  text-align: center;
   border-radius: 8px;
   background: rgba(255,255,255,0.03);
-}
-
-.upload-container.hover {
-  border-color: #000;
-  background: rgba(0,0,0,0.05);
-}
-
-.upload-container progress {
-  width: 100%;
-  display: none;
-}
-
-/* RECHTE SPALTE */
-.existing {
-  background: rgba(255,255,255,0.15);
-  padding: 15px;
-  border-radius: 8px;
-  width: 320px;
-  text-align: left;
-}
-
-.file-list {
-  font-size: 13px;
-  margin-top: 10px;
-  color: #fff;
-}
-
-/* RESPONSIVE */
-@media (max-width: 900px) {
-  .layout {
-    flex-direction: column;
-    align-items: center;
-  }
-}
-
-/* DEBUG */
-#debug {
-  background: #fff;
-  color: #000;
-  padding: 10px;
-  margin-top: 20px;
-}
-
-  padding: 12px;
-  background: #f8f8f8;
-  border-radius: 8px;
-}
-
-#existing-files {
-  min-height: 250px;
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-/* Responsive */
-@media (max-width: 900px) {
-  .layout {
-    flex-direction: column;
-  }
 }
 
 .upload-container.hover {
@@ -150,9 +70,50 @@ height: auto;
   width: 100%;
   display: none;
   margin-top: 8px;
-  pointer-events: none !important;   /* WICHTIG */
+  pointer-events: none;
 }
 
+/* =====================
+   RECHTE SPALTE – HOCHGELADENE DATEIEN
+===================== */
+.existing {
+  background: #ffffff;
+  color: #000000;
+  padding: 15px;
+  border-radius: 8px;
+  width: 320px;
+  text-align: left;
+}
+
+#existing-files {
+  min-height: 250px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* Schrift im rechten Container */
+.existing .file-list,
+.existing ul,
+.existing li,
+.existing small {
+  color: #000;
+}
+
+/* =====================
+   DATEILISTEN (global)
+===================== */
+.file-list {
+  font-size: 13px;
+  margin-top: 10px;
+  text-align: left;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* =====================
+   FORM & BUTTONS
+===================== */
 button {
   margin-top: 15px;
   padding: 10px 20px;
@@ -178,63 +139,22 @@ select {
   color: #fff;
 }
 
+/* =====================
+   DEBUG
+===================== */
 #debug {
-  color: #000;
   background: #fff;
+  color: #000;
+  padding: 10px;
+  margin-top: 20px;
 }
-✅ FINALER Drop-Zonen-Fix für script.js
-Bitte ersetze deine komplette setupDrops() durch diese geprüfte Version:
 
-javascript
-Code kopieren
-function setupDrops() {
-
-  // Dokument verhindert Browser-Blockade
-  document.addEventListener("dragover", e => e.preventDefault());
-  document.addEventListener("drop", e => e.preventDefault());
-
-  containers.forEach(c => {
-    const el = $(c.dropId);
-    const status = $(c.status);
-    const prog = $(c.prog);
-
-    el.addEventListener("dragover", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      el.classList.add("hover");
-    });
-
-    el.addEventListener("dragleave", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      el.classList.remove("hover");
-    });
-
-    el.addEventListener("drop", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      el.classList.remove("hover");
-
-      const files = e.dataTransfer.files;
-
-      // speichern
-      el._files = files;
-
-      // Status anzeigen
-      status.textContent = files.length + " Datei(en) bereit";
-
-      // Fortschrittsbalken resetten
-      prog.style.display = "none";
-      prog.value = 0;
-    });
-  });
-}
-.file-list {
-  margin-top: 10px;
-  font-size: 13px;
-  text-align: left;
-  width: 90%;
-  margin-left: auto;
-  margin-right: auto;
-  color: #fff;
+/* =====================
+   RESPONSIVE
+===================== */
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+    align-items: center;
+  }
 }
