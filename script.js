@@ -4,7 +4,9 @@
 const apiUpload = "https://nextcloud-backend1.onrender.com/api/upload";
 const apiFiles  = "https://nextcloud-backend1.onrender.com/api/files";
 
-function $(id) { return document.getElementById(id); }
+function $(id) {
+  return document.getElementById(id);
+}
 
 const containers = [
   { dropId: "drop-wahlausschreiben", filetype: "wahlausschreiben", prog: "prog-wahlausschreiben", status: "status-wahlausschreiben", list: "list-wahlausschreiben" },
@@ -23,11 +25,11 @@ function refreshFileListDebounced() {
 }
 
 async function loadExistingFiles() {
-  const bezirk = $("bezirk").value;
-  const bkz    = $("bkz").value.trim();
+  const bezirk = $("bezirk")?.value;
+  const bkz    = $("bkz")?.value.trim();
 
-  if (!bezirk || !bkz) {
-    const target = $("existing-files");
+  const target = $("existing-files");
+  if (!bezirk || !bkz || !target) {
     if (target) target.textContent = "Bitte Bezirk und BKZ auswählen";
     return;
   }
@@ -36,17 +38,13 @@ async function loadExistingFiles() {
     const res = await fetch(
       `${apiFiles}?bezirk=${encodeURIComponent(bezirk)}&bkz=${encodeURIComponent(bkz)}`
     );
-
     const files = await res.json();
-    const target = $("existing-files");
-    if (!target) return;
 
     if (!files.length) {
       target.textContent = "Keine Dateien vorhanden";
       return;
     }
 
-    // Neueste zuerst
     files.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
 
     target.innerHTML = `
@@ -54,21 +52,19 @@ async function loadExistingFiles() {
         ${files.map(f => `
           <li>
             ${f.name}<br>
-            <small>
-              hochgeladen am:
-              ${new Date(f.lastModified).toLocaleString("de-DE")}
-            </small>
+            <small>${new Date(f.lastModified).toLocaleString("de-DE")}</small>
           </li>
         `).join("")}
       </ul>
     `;
   } catch (err) {
     console.error("Fehler beim Laden der Dateien", err);
+    target.textContent = "Fehler beim Laden der Dateien";
   }
 }
 
 // ----------------------------
-// DRAG & DROP SETUP
+// DRAG & DROP
 // ----------------------------
 function setupDrops() {
 
@@ -80,6 +76,8 @@ function setupDrops() {
     const status = $(c.status);
     const prog   = $(c.prog);
     const list   = $(c.list);
+
+    if (!el) return;
 
     el.addEventListener("dragover", e => {
       e.preventDefault();
@@ -97,16 +95,18 @@ function setupDrops() {
       const files = e.dataTransfer.files;
       el._files = files;
 
-      list.innerHTML = "";
-      for (let i = 0; i < files.length; i++) {
+      if (list) list.innerHTML = "";
+      for (let f of files) {
         const div = document.createElement("div");
-        div.textContent = "📄 " + files[i].name + " (" + Math.round(files[i].size / 1024) + " KB)";
-        list.appendChild(div);
+        div.textContent = `📄 ${f.name} (${Math.round(f.size / 1024)} KB)`;
+        list?.appendChild(div);
       }
 
-      status.textContent = files.length + " Datei(en) bereit";
-      prog.style.display = "none";
-      prog.value = 0;
+      if (status) status.textContent = `${files.length} Datei(en) bereit`;
+      if (prog) {
+        prog.style.display = "none";
+        prog.value = 0;
+      }
 
       updateUploadButton();
     });
@@ -114,14 +114,15 @@ function setupDrops() {
 }
 
 // ----------------------------
-// UPLOAD-BUTTON AKTIVIERUNG
+// UPLOAD BUTTON
 // ----------------------------
 function updateUploadButton() {
   const btn = $("upload-btn");
+  if (!btn) return;
 
   const hasFiles = containers.some(c => {
     const el = $(c.dropId);
-    return el._files && el._files.length > 0;
+    return el && el._files && el._files.length > 0;
   });
 
   btn.disabled = !hasFiles;
@@ -132,10 +133,18 @@ function updateUploadButton() {
 // ----------------------------
 function uploadSingleFile(file, filetype, container) {
   return new Promise((resolve, reject) => {
+
+    const bezirk = $("bezirk")?.value;
+    const bkz    = $("bkz")?.value;
+
+    if (!bezirk || !bkz) {
+      reject("Bezirk/BKZ fehlt");
+      return;
+    }
+
     const form = new FormData();
-    form.append("bezirk", $("bezirk").value);
-    form.append("bkz", $("bkz").value);
-    form.append("code", $("code").value || "");
+    form.append("bezirk", bezirk);
+    form.append("bkz", bkz);
     form.append("containers", filetype);
     form.append("files", file, file.name);
 
@@ -145,31 +154,28 @@ function uploadSingleFile(file, filetype, container) {
     const progEl   = $(container.prog);
     const statusEl = $(container.status);
 
-    xhr.upload.addEventListener("progress", e => {
-      if (e.lengthComputable) {
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable && progEl && statusEl) {
         const p = Math.round((e.loaded / e.total) * 100);
         progEl.style.display = "block";
         progEl.value = p;
         statusEl.textContent = `Upload: ${p}%`;
       }
-    });
+    };
 
     xhr.onload = () => {
       if (xhr.status === 200) {
-        statusEl.textContent = "✓ Erfolgreich hochgeladen";
-
-        // 🔁 AUTO-REFRESH NACH UPLOAD
+        statusEl && (statusEl.textContent = "✓ Erfolgreich hochgeladen");
         refreshFileListDebounced();
-
         resolve(true);
       } else {
-        statusEl.textContent = "❌ Fehler: " + xhr.status;
+        statusEl && (statusEl.textContent = `❌ Fehler (${xhr.status})`);
         reject(xhr.status);
       }
     };
 
     xhr.onerror = () => {
-      statusEl.textContent = "❌ Netzwerkfehler";
+      statusEl && (statusEl.textContent = "❌ Netzwerkfehler");
       reject("network");
     };
 
@@ -181,33 +187,25 @@ function uploadSingleFile(file, filetype, container) {
 // ALLE UPLOADS
 // ----------------------------
 async function uploadAll() {
-  const bezirk = $("bezirk").value;
-  const bkz    = $("bkz").value;
 
-  if (!bezirk || !bkz) {
-    alert("Bitte Bezirk und BKZ ausfüllen.");
-    return;
-  }
-
-  $("upload-btn").disabled = true;
+  const btn = $("upload-btn");
+  btn.disabled = true;
 
   for (let c of containers) {
     const el = $(c.dropId);
-    const files = el._files;
+    if (!el || !el._files) continue;
 
-    if (!files || files.length === 0) continue;
-
-    for (let i = 0; i < files.length; i++) {
+    for (let file of el._files) {
       try {
-        await uploadSingleFile(files[i], c.filetype, c);
+        await uploadSingleFile(file, c.filetype, c);
       } catch (err) {
-        console.error("Fehler bei Datei:", files[i].name, err);
+        console.error("Fehler bei Datei:", file.name, err);
       }
     }
   }
 
-  alert("Alle Uploads abgeschlossen.");
-  $("upload-btn").disabled = false;
+  alert("Alle Uploads abgeschlossen");
+  btn.disabled = false;
 }
 
 // ----------------------------
@@ -215,8 +213,8 @@ async function uploadAll() {
 // ----------------------------
 document.addEventListener("DOMContentLoaded", () => {
   setupDrops();
-  $("upload-btn").addEventListener("click", uploadAll);
-  $("bezirk").addEventListener("change", refreshFileListDebounced);
-  $("bkz").addEventListener("input", refreshFileListDebounced);
+  $("upload-btn")?.addEventListener("click", uploadAll);
+  $("bezirk")?.addEventListener("change", refreshFileListDebounced);
+  $("bkz")?.addEventListener("input", refreshFileListDebounced);
   updateUploadButton();
 });
